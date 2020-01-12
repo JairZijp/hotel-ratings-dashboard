@@ -1,0 +1,16 @@
+body {
+    padding-top: 50px;
+}
+
+#map {
+    width: 70%;
+    display: block;
+    float: left;
+}
+
+#my-range-slider, #output-container-range-slider {
+    padding-top: 30px;
+    width: 25%;
+    float: left;
+    display: block;
+}
