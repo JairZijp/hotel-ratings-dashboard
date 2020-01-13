@@ -16,6 +16,9 @@ from keras.layers.embeddings import Embedding
 from sklearn.model_selection import train_test_split
 from keras.preprocessing.text import Tokenizer
 
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+
 mng_client = pymongo.MongoClient('localhost', 27017)
 mng_db = mng_client['assignment2']
 collection_name = 'balanced_reviews'
@@ -110,17 +113,49 @@ score = model.evaluate(X_test, y_test, verbose=1)
 print("Test Score:", score[0])
 print("Test Accuracy:", score[1])
 
-# plt.title('model accuracy')
-# plt.ylabel('accuracy')
-# plt.xlabel('epoch')
-# plt.legend(['train','test'], loc='upper left')
-# plt.show()
+def custom_review(review):
+    stop_words = set(stopwords.words('english'))
+    word_tokens = word_tokenize(review)
 
-# plt.plot(history.history['loss'])
-# plt.plot(history.history['val_loss'])
+    filtered_sentence = [w for w in word_tokens if not w in stop_words] 
+    
+    filtered_sentence = [] 
+    
+    for w in word_tokens: 
+        if w not in stop_words: 
+            filtered_sentence.append(w)
 
-# plt.title('model loss')
-# plt.ylabel('loss')
-# plt.xlabel('epoch')
-# plt.legend(['train','test'], loc='upper left')
-# plt.show()
+    the_rev = tokenizer.texts_to_sequences(filtered_sentence)
+
+    ent_list = []
+
+    for sublist in the_rev:
+        for item in sublist:
+            ent_list.append(item)
+
+    instance = pad_sequences([ent_list], padding='post', maxlen=maxlen)
+
+    print('This review is positive') if model.predict(instance)[0][0] > 0.5 else print('This review is negative')
+import matplotlib.pyplot as plt
+
+plt.plot(history.history['acc'])
+plt.plot(history.history['val_acc'])
+
+plt.title('model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['train','test'], loc = 'upper left')
+plt.show()
+
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train','test'], loc = 'upper left')
+plt.show()
+
+custom_review("Wow, this hotel was so amazing. It had a beautiful view and a great breakfast.")
+custom_review("This was terrible. What a bad hotel. Breakfast was awful")
+custom_review("The hotel was alright. The breakfast was decent but the view was not very nice. However the shower was great")
