@@ -7,6 +7,8 @@ import pymongo
 import plotly
 import plotly.graph_objs as go
 
+ACCESS_TOKEN = 'pk.eyJ1Ijoic2ltb25odmEiLCJhIjoiY2s1OXk2c3BhMTFyaDNwbGprYWowZmZhOSJ9.Alw4kvUDHu7cxG9hB_Ra9Q'
+
 mng_client = pymongo.MongoClient('localhost', 27017)
 mng_db = mng_client['assignment2']
 collection_name = 'reviews'
@@ -26,43 +28,35 @@ final_df = df
 
 def fill_map(df):
     print("filling map...")
-    cities = []
-    for index, row in df.iterrows():
-        city = go.Scattergeo(
-            lon = [row['lng']],
-            lat = [row['lat']],
-            text = row['text'],
-            marker = go.scattergeo.Marker(
-                size = row['Average_Score'],
-                line = go.scattergeo.marker.Line(
-                    width=0.5, color='rgb(40,40,40)'
-                )
-            ))
-        cities.append(city)
-    return cities
+
+    trace = [go.Scattermapbox(lat=list(df['lat']),
+                            lon=list(df['lng']),
+                            mode='markers',
+                            marker=go.scattermapbox.Marker(
+                                size=9
+                            ),
+                            text=list(df['text'])
+            )]
+
+    return trace
 
 fill_map(final_df)
 
 layout = go.Layout(
-        title = go.layout.Title(
-            text = 'Hotel reviewss'
+    autosize=True,
+    hovermode='closest',
+    mapbox=go.layout.Mapbox(
+        accesstoken=ACCESS_TOKEN,
+        bearing=0,
+        center=go.layout.mapbox.Center(
+            lat=48.203745,
+            lon=16.335677
         ),
-        width = 1000,
-        height = 750,
-        showlegend = False,
-        geo = go.layout.Geo(
-            scope = 'europe',
-            projection = go.layout.geo.Projection(
-                type='miller'
-            ),
-            showland = True,
-            landcolor = 'rgb(217, 217, 217)',
-            subunitwidth=1,
-            countrywidth=1,
-            subunitcolor="rgb(255, 255, 255)",
-            countrycolor="rgb(255, 255, 255)"
-        )
-    )
+        pitch=0,
+        zoom=4,
+    ),
+    height=650
+)
 
 app.layout = html.Div([
     dcc.Graph(
@@ -83,35 +77,24 @@ app.layout = html.Div([
     Output('output-container-range-slider', 'children')],
     [Input('my-range-slider', 'value')])
 def update_output(range):
-    # db_cm = mng_db[collection_name].find({ "Average_Score" : { "$gt" :  range[0], "$lt" : range[1]}})
-    # df = pd.DataFrame(list(db_cm))
-    # df.drop_duplicates(subset ="Hotel_Address", inplace = True) 
-    # df['text'] = df['Hotel_Name'] + '<br>Rating ' + (df['Average_Score']/1e6).astype(str)+' '
-    
     filtered_df = df[df['Average_Score'].between(range[0], range[1])]
-    
     traces = fill_map(filtered_df)
     return {
         'data': traces,
         'layout': go.Layout(
-                title = go.layout.Title(
-                text = 'Hotel reviews'
-            ),
-            width = 840,
-            height = 650,
-            showlegend = False,
-            geo = go.layout.Geo(
-                scope = 'europe',
-                projection = go.layout.geo.Projection(
-                    type='miller'
+            autosize=True,
+            hovermode='closest',
+            mapbox=go.layout.Mapbox(
+                accesstoken=ACCESS_TOKEN,
+                bearing=0,
+                center=go.layout.mapbox.Center(
+                    lat=48.203745,
+                    lon=16.335677
                 ),
-                showland = True,
-                landcolor = 'rgb(217, 217, 217)',
-                subunitwidth=1,
-                countrywidth=1,
-                subunitcolor="rgb(255, 255, 255)",
-                countrycolor="rgb(255, 255, 255)"
-            )
+                pitch=0,
+                zoom=4
+            ),
+             height=650
         )
     }, 'Average rating between: "{}"'.format(range)
 
