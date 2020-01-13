@@ -6,7 +6,6 @@ import pandas as pd
 import pymongo
 import plotly
 import plotly.graph_objs as go
-from plotly.offline import *
 
 mng_client = pymongo.MongoClient('localhost', 27017)
 mng_db = mng_client['assignment2']
@@ -20,8 +19,10 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-df['text'] = df['Hotel_Name'] + '<br>Rating ' + (df['Average_Score']/1e6).astype(str)+' '
+df['text'] = df['Hotel_Name'] + '<br>Rating ' + df['Average_Score'].astype(str)+' '
 cities = []
+
+final_df = df
 
 def fill_map(df):
     print("filling map...")
@@ -40,7 +41,7 @@ def fill_map(df):
         cities.append(city)
     return cities
 
-fill_map(df)
+fill_map(final_df)
 
 layout = go.Layout(
         title = go.layout.Title(
@@ -82,12 +83,14 @@ app.layout = html.Div([
     Output('output-container-range-slider', 'children')],
     [Input('my-range-slider', 'value')])
 def update_output(range):
-    db_cm = mng_db[collection_name].find({ "Average_Score" : { "$gt" :  range[0], "$lt" : range[1]}})
-    df = pd.DataFrame(list(db_cm))
-    df.drop_duplicates(subset ="Hotel_Address", inplace = True) 
-    df['text'] = df['Hotel_Name'] + '<br>Rating ' + (df['Average_Score']/1e6).astype(str)+' '
+    # db_cm = mng_db[collection_name].find({ "Average_Score" : { "$gt" :  range[0], "$lt" : range[1]}})
+    # df = pd.DataFrame(list(db_cm))
+    # df.drop_duplicates(subset ="Hotel_Address", inplace = True) 
+    # df['text'] = df['Hotel_Name'] + '<br>Rating ' + (df['Average_Score']/1e6).astype(str)+' '
     
-    traces = fill_map(df)
+    filtered_df = df[df['Average_Score'].between(range[0], range[1])]
+    
+    traces = fill_map(filtered_df)
     return {
         'data': traces,
         'layout': go.Layout(
