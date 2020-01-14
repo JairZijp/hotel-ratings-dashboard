@@ -1,16 +1,27 @@
 body {
-    padding-top: 50px;
+    padding-top: 20px;
+}
+
+h2 {
+    padding-left: 75px;
+    margin-bottom: 0;
 }
 
 #map {
-    width: 70%;
+    width: 65%;
     display: block;
     float: left;
+    height: 650px;
+    margin-left: -50px;
 }
 
-#my-range-slider, #output-container-range-slider {
+#my-range-slider, #output-container-range-slider, #rating-plot {
     padding-top: 30px;
-    width: 25%;
+    width: 35%;
     float: left;
     display: block;
+}
+
+#rating-plot {
+    padding-left: 0;
 }

@@ -4,6 +4,7 @@ import re
 import nltk
 from nltk.corpus import stopwords
 import pymongo
+import dask.dataframe as ddf
 
 from numpy import array
 from keras.preprocessing.text import one_hot
@@ -30,33 +31,45 @@ del reviews['_id']
 
 import seaborn as sns
 
-def preprocess_text(sen):
-    # Removing html tags
-    sentence = remove_tags(sen)
+# this function is used for apply
+def proces_text(row):
+    
+    the_text = row['review']
 
-    # Remove punctuations and numbers
-    sentence = re.sub('[^a-zA-Z]', ' ', sentence)
+    row['review'] = proces_text_only(the_text)    
+    
+    return row
 
-    # Single character removal
-    sentence = re.sub(r"\s+[a-zA-Z]\s+", ' ', sentence)
+# this function is used for only text
+def proces_text_only(text_only):
+    # Remove all the special characters (pro_fea = processed feature)
+    pro_fea = re.sub(r'\W', ' ', text_only)
+    # remove all single characters
+    pro_fea = re.sub(r'\s+[a-zA-Z]\s+', ' ', pro_fea)
+    # Remove single characters from the start
+    pro_fea = re.sub(r'\^[a-zA-Z]\s+', ' ', pro_fea) 
+    # Substituting multiple spaces with single space
+    pro_fea = re.sub(r'\s+', ' ', pro_fea, flags=re.I)
+    # Removing prefixed 'b'
+    pro_fea = re.sub(r'^b\s+', '', pro_fea)
+    # Converting to Lowercase
+    return pro_fea.lower() 
 
-    # Removing multiple spaces
-    sentence = re.sub(r'\s+', ' ', sentence)
+ddf_reviews = ddf.from_pandas(reviews, npartitions=7)
+ddf_rev_pr = ddf_reviews.apply(proces_text, axis=1, meta={'review': 'object', 'positive': 'int64'})
 
-    return sentence
+df_rev = ddf_rev_pr.compute()
 
-TAG_RE = re.compile(r'<[^>]+>')
+REV_LIMIT = 100000
+rev_negatives = df_rev[df_rev.positive == 0][:REV_LIMIT]
+rev_positives = df_rev[df_rev.positive == 1][:REV_LIMIT]
 
-def remove_tags(text):
-    return TAG_RE.sub('', text)
+rev_balanced = pd.concat([rev_negatives, rev_positives]).reset_index(drop=True)
 
-X = []
-sentences = list(reviews['review'])
-for sen in sentences:
-    X.append(preprocess_text(sen))
+X = np.array(list(rev_balanced.loc[:, 'review']))
+y = np.array(list(rev_balanced.loc[:, 'positive']))
 
-
-X_train, X_test, y_train, y_test = train_test_split(X, reviews["positive"], test_size=0.20, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.80, random_state=42)
 
 # Create word-to-index dictionary.
 tokenizer = Tokenizer(num_words=5000)
@@ -94,25 +107,24 @@ for word, index in tokenizer.word_index.items():
     if embedding_vector is not None:
         embedding_matrix[index] = embedding_vector
 
-
+# create model
 model = Sequential()
 embedding_layer = Embedding(vocab_size, 100, weights=[embedding_matrix], input_length=maxlen , trainable=False)
 model.add(embedding_layer)
-
 model.add(Flatten())
 model.add(Dense(1, activation='sigmoid'))
-
-
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['acc'])
 print(model.summary())
 
 #train model
-history = model.fit(X_train, y_train, batch_size=128, epochs=3, verbose=1, validation_split=0.2)
-
+history = model.fit(X_train, y_train, batch_size=128, epochs=7, verbose=1, validation_split=0.2)
 score = model.evaluate(X_test, y_test, verbose=1)
-print("Test Score:", score[0])
-print("Test Accuracy:", score[1])
 
+print("Test Score:", score[0])
+print("Test Accuracy:!", score[1])
+
+
+# function to test custom reviews
 def custom_review(review):
     stop_words = set(stopwords.words('english'))
     word_tokens = word_tokenize(review)

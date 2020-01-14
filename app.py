@@ -43,14 +43,15 @@ def fill_map(df):
 fill_map(final_df)
 
 layout = go.Layout(
+    title='Hotel Reviews in Europe',
     autosize=True,
     hovermode='closest',
     mapbox=go.layout.Mapbox(
         accesstoken=ACCESS_TOKEN,
         bearing=0,
         center=go.layout.mapbox.Center(
-            lat=48.203745,
-            lon=16.335677
+            lat=50.203745,
+            lon=4.335677
         ),
         pitch=0,
         zoom=4,
@@ -58,18 +59,40 @@ layout = go.Layout(
     height=650
 )
 
+sorted_list = df.sort_values('Average_Score', ascending=False).head(10)
+
 app.layout = html.Div([
+    html.H2('Hotel ratings in Europe'),
     dcc.Graph(
          id='map'
     ),
-    dcc.RangeSlider(
-        id='my-range-slider',
-        min=1,
-        max=10,
-        step=0.1,
-        value=[0, 10]
-    ),
-    html.Div(id='output-container-range-slider')
+    
+    html.Div([
+        html.H4('Filter on average rating'),
+         dcc.RangeSlider(
+            id='my-range-slider',
+            min=1,
+            max=10,
+            step=0.1,
+            value=[0, 10]
+        ),
+        html.Div(id='output-container-range-slider'),
+        dcc.Graph(id="rating-plot",
+            figure={
+                'data': [{'y': sorted_list['Hotel_Name'].iloc[::-1], 'x': sorted_list['Average_Score'].iloc[::-1], 
+                    'type': 'bar',
+                    'orientation': 'h',
+                    'name': 'Hightest Score'
+                    }
+                ],
+                'layout': {
+                    'title': 'Highest score'
+                }
+            }
+        ),
+    ]),
+  
+   
 ])
 
 @app.callback(
@@ -89,7 +112,7 @@ def update_output(range):
                 bearing=0,
                 center=go.layout.mapbox.Center(
                     lat=48.203745,
-                    lon=16.335677
+                    lon=4.335677
                 ),
                 pitch=0,
                 zoom=4
